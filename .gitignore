@@ -6,3 +6,6 @@ __pycache__/
 *.pyc
 public/videos/
 *.pt
+src/test*
+src/*unsplash.jpg
+src/._*
