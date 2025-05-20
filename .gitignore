@@ -1,10 +1,8 @@
 node_modules/
 build/
-venv/
+build.zip
+dist/
+*.zip
 .env
-__pycache__/
-*.pyc
-*.pt
+src/*.pt
 src/test*
-src/*unsplash.jpg
-src/._*
