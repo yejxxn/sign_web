@@ -4,24 +4,24 @@ import './App.css';
 
 // 단어별 영상 매핑 객체
 const videoMapping = {
-  "지금": "https://my-signlanguage-videos-2025.s3.ap-northeast-2.amazonaws.com/videos/now.mp4",
-  "부터": "https://my-signlanguage-videos-2025.s3.ap-northeast-2.amazonaws.com/videos/from.mp4",
-  "2시간": "https://my-signlanguage-videos-2025.s3.ap-northeast-2.amazonaws.com/videos/two-hours.mp4",
-  "안": "https://my-signlanguage-videos-2025.s3.ap-northeast-2.amazonaws.com/videos/within.mp4",
-  "해결": "https://my-signlanguage-videos-2025.s3.ap-northeast-2.amazonaws.com/videos/solve.mp4",
-  "꼭": "https://my-signlanguage-videos-2025.s3.ap-northeast-2.amazonaws.com/videos/must.mp4",
-  "핸드폰": "https://my-signlanguage-videos-2025.s3.ap-northeast-2.amazonaws.com/videos/phone.mp4",
-  "번호": "https://my-signlanguage-videos-2025.s3.ap-northeast-2.amazonaws.com/videos/number.mp4",
-  "말해주다": "https://my-signlanguage-videos-2025.s3.ap-northeast-2.amazonaws.com/videos/tell.mp4",
-  "원하다": "https://my-signlanguage-videos-2025.s3.ap-northeast-2.amazonaws.com/videos/want.mp4",
-  "언제": "https://my-signlanguage-videos-2025.s3.ap-northeast-2.amazonaws.com/videos/when.mp4",
-  "안돼": "https://my-signlanguage-videos-2025.s3.ap-northeast-2.amazonaws.com/videos/not-working.mp4",
-  "계속": "https://my-signlanguage-videos-2025.s3.ap-northeast-2.amazonaws.com/videos/continuously.mp4",
-  "불편": "https://my-signlanguage-videos-2025.s3.ap-northeast-2.amazonaws.com/videos/inconvenient.mp4",
-  "크다": "https://my-signlanguage-videos-2025.s3.ap-northeast-2.amazonaws.com/videos/big.mp4",
-  "이름": "https://my-signlanguage-videos-2025.s3.ap-northeast-2.amazonaws.com/videos/name.mp4",
-  "전화번호": "https://my-signlanguage-videos-2025.s3.ap-northeast-2.amazonaws.com/videos/phone-number.mp4",
-  "알려주다": "https://my-signlanguage-videos-2025.s3.ap-northeast-2.amazonaws.com/videos/inform.mp4",
+  "지금": `${process.env.REACT_APP_S3_BUCKET_URL}/videos/now.mp4`,
+  "부터": `${process.env.REACT_APP_S3_BUCKET_URL}/videos/from.mp4`,
+  "2시간": `${process.env.REACT_APP_S3_BUCKET_URL}/videos/two-hours.mp4`,
+  "안": `${process.env.REACT_APP_S3_BUCKET_URL}/videos/within.mp4`,
+  "해결": `${process.env.REACT_APP_S3_BUCKET_URL}/videos/solve.mp4`,
+  "꼭": `${process.env.REACT_APP_S3_BUCKET_URL}/videos/must.mp4`,
+  "핸드폰": `${process.env.REACT_APP_S3_BUCKET_URL}/videos/phone.mp4`,
+  "번호": `${process.env.REACT_APP_S3_BUCKET_URL}/videos/number.mp4`,
+  "말해주다": `${process.env.REACT_APP_S3_BUCKET_URL}/videos/tell.mp4`,
+  "원하다": `${process.env.REACT_APP_S3_BUCKET_URL}/videos/want.mp4`,
+  "언제": `${process.env.REACT_APP_S3_BUCKET_URL}/videos/when.mp4`,
+  "안돼": `${process.env.REACT_APP_S3_BUCKET_URL}/videos/not-working.mp4`,
+  "계속": `${process.env.REACT_APP_S3_BUCKET_URL}/videos/continuously.mp4`,
+  "불편": `${process.env.REACT_APP_S3_BUCKET_URL}/videos/inconvenient.mp4`,
+  "크다": `${process.env.REACT_APP_S3_BUCKET_URL}/videos/big.mp4`,
+  "이름": `${process.env.REACT_APP_S3_BUCKET_URL}/videos/name.mp4`,
+  "전화번호": `${process.env.REACT_APP_S3_BUCKET_URL}/videos/phone-number.mp4`,
+  "알려주다": `${process.env.REACT_APP_S3_BUCKET_URL}/videos/inform.mp4`,
 };
 
 function App() {
@@ -303,16 +303,16 @@ function App() {
             {categories[category].map((word, idx) => (
               <div key={idx} className="word-card">
                 <video
-                  className="word-video"
-                  src={videoMapping[word] || "/videos/placeholder.mp4"}
-                  autoPlay
-                  loop
-                  muted
-                  preload="metadata"
-                  onError={() => console.error(`영상 로드 실패: ${word}`)}
-                >
-                  영상을 로드할 수 없습니다: {word}
-                </video>
+  className="word-video"
+  src={videoMapping[word] || `${process.env.REACT_APP_S3_BUCKET_URL}/videos/placeholder.mp4`}
+  autoPlay
+  loop
+  muted
+  preload="metadata"
+  onError={(e) => console.error(`영상 로드 실패: ${word}, URL: ${videoMapping[word]}, 에러: ${e.target.error.message}, 코드: ${e.target.error.code}`)}
+>
+  영상을 로드할 수 없습니다: {word}
+</video>
                 <p>{word}</p>
               </div>
             ))}
