@@ -4,7 +4,6 @@ venv/
 .env
 __pycache__/
 *.pyc
-public/videos/
 *.pt
 src/test*
 src/*unsplash.jpg
