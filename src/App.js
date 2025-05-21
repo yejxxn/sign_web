@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import './App.css';
 
-// 단어별 영상 매핑 객체
-
-  const videoMapping = {
+// 단어별 영상 매핑 객체 (S3 URL)
+const videoMapping = {
   "지금": "https://my-signlanguage-videos-2025.s3-ap-southeast-2.amazonaws.com/videos/now.mp4",
   "부터": "https://my-signlanguage-videos-2025.s3-ap-southeast-2.amazonaws.com/videos/from.mp4",
   "2시간": "https://my-signlanguage-videos-2025.s3-ap-southeast-2.amazonaws.com/videos/two-hours.mp4",
@@ -152,22 +152,12 @@ function App() {
     setFailedAttempts(0);
   };
 
-  const handleDragStart = (e, word) => {
-    e.dataTransfer.setData("text", word);
-  };
-
-  const handleDrop = (e, index) => {
-    e.preventDefault();
-    const word = e.dataTransfer.getData("text");
+  const onDragEnd = (result) => {
+    if (!result.destination) return;
+    const word = shuffledWords[result.source.index];
     const newOrder = [...userOrder];
-    newOrder[index] = word;
+    newOrder[result.destination.index] = word;
     setUserOrder(newOrder);
-  };
-
-  const handleReset = () => {
-    setUserOrder(Array(targetWords.length).fill(null));
-    setFeedback("");
-    setAcquiredSentence("");
   };
 
   const checkAnswer = async () => {
@@ -281,6 +271,12 @@ function App() {
     }
   };
 
+  const handleReset = () => {
+    setUserOrder(Array(targetWords.length).fill(null));
+    setFeedback("");
+    setAcquiredSentence("");
+  };
+
   return (
     <div className="App">
       {screen === "홈" && (
@@ -304,17 +300,17 @@ function App() {
             {categories[category].map((word, idx) => (
               <div key={idx} className="word-card">
                 <video
-  className="word-video"
-  src={videoMapping[word] || `${process.env.REACT_APP_S3_BUCKET_URL}/videos/placeholder.mp4`}
-  autoPlay
-  loop
-  muted
-  preload="metadata"
-  onError={(e) => console.error(`영상 로드 실패: ${word}, URL: ${videoMapping[word]}, 에러: ${e.target.error.message}, 코드: ${e.target.error.code}`)}
->
-  영상을 로드할 수 없습니다: {word}
-</video>
-
+                  className="word-video"
+                  src={videoMapping[word] || "https://my-signlanguage-videos-2025.s3-ap-southeast-2.amazonaws.com/videos/placeholder.mp4"}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  preload="metadata"
+                  onError={(e) => console.error(`영상 로드 실패: ${word}, URL: ${videoMapping[word]}, 에러: ${e.target.error.message}, 코드: ${e.target.error.code}`)}
+                >
+                  영상을 로드할 수 없습니다: {word}
+                </video>
                 <p>{word}</p>
               </div>
             ))}
@@ -326,41 +322,62 @@ function App() {
         <div className={`game ${pageIdx === 2 ? 'question-3' : ''}`}>
           <h1 className="title">질문 #{pageIdx + 1}</h1>
           <p className="question">{pages[pageIdx].question}</p>
-          <div className="clues">
-            {shuffledWords.map((word, idx) => (
-              <div
-                key={idx}
-                className="word-card draggable"
-                draggable
-                onDragStart={(e) => handleDragStart(e, word)}
-                onClick={() => setHintWord(word)}
-              >
-                <video
-                  className="word-video"
-                  src={videoMapping[word] || "/videos/placeholder.mp4"}
-                  autoPlay
-                  loop
-                  muted
-                  preload="metadata"
-                  onError={() => console.error(`영상 로드 실패: ${word}`)}
-                >
-                  영상을 로드할 수 없습니다: {word}
-                </video>
-              </div>
-            ))}
-          </div>
-          <div className="drop-zone">
-            {targetWords.map((_, idx) => (
-              <div
-                key={idx}
-                className="drop-slot"
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => handleDrop(e, idx)}
-              >
-                {userOrder[idx] || "여기에 드롭"}
-              </div>
-            ))}
-          </div>
+          <DragDropContext onDragEnd={onDragEnd}>
+            <Droppable droppableId="words" direction="horizontal">
+              {(provided) => (
+                <div {...provided.droppableProps} ref={provided.innerRef} className="clues">
+                  {shuffledWords.map((word, idx) => (
+                    <Draggable key={word} draggableId={word} index={idx}>
+                      {(provided) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          {...provided.dragHandleProps}
+                          className="word-card"
+                          onClick={() => setHintWord(word)}
+                        >
+                          <video
+                            className="word-video"
+                            src={videoMapping[word] || "https://my-signlanguage-videos-2025.s3-ap-southeast-2.amazonaws.com/videos/placeholder.mp4"}
+                            autoPlay
+                            loop
+                            muted
+                            playsInline
+                            preload="metadata"
+                            onError={(e) => console.error(`영상 로드 실패: ${word}, URL: ${videoMapping[word]}, 에러: ${e.target.error.message}, 코드: ${e.target.error.code}`)}
+                          >
+                            영상을 로드할 수 없습니다: {word}
+                          </video>
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
+            <Droppable droppableId="slots" direction="horizontal">
+              {(provided) => (
+                <div {...provided.droppableProps} ref={provided.innerRef} className="drop-zone">
+                  {targetWords.map((_, idx) => (
+                    <Draggable key={`slot-${idx}`} draggableId={`slot-${idx}`} index={idx}>
+                      {(provided) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          {...provided.dragHandleProps}
+                          className="drop-slot"
+                        >
+                          {userOrder[idx] || "여기에 드롭"}
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
+          </DragDropContext>
           <div className="sentence-container">
             <div className="sentence-wrapper">
               <span className="hint-text">HINT</span>
@@ -515,6 +532,6 @@ function App() {
       )}
     </div>
   );
-}console.log('S3 Bucket URL:', process.env.REACT_APP_S3_BUCKET_URL);
+}
 
 export default App;
