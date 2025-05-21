@@ -1,7 +1,7 @@
 from flask import Flask
 from flask_cors import CORS
 import os
-from app import analyze, predict as predict_rule
+from App import analyze, predict as predict_rule
 from predict_api import predict as predict_gemini
 
 app = Flask(__name__)
