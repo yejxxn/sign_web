@@ -5,7 +5,7 @@ from flask_cors import CORS
 import os
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}})
+CORS(app, resources={r"/*": {"origins": "https://main.d23h1cnhay8lb3.amplifyapp.com"}})
 
 app.route('/analyze', methods=['POST'])(analyze)
 app.route('/predict-rule', methods=['POST'], endpoint='predict_rule')(predict_rule)
