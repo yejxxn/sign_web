@@ -186,7 +186,7 @@ function App() {
 
   const analyzePattern = async (attempt) => {
     try {
-      const response = await axios.post('http://localhost:5001/analyze', {
+      const response = await axios.post('hhttps://sign-web.onrender.com/analyze', {
         userOrder: attempt.userOrder,
         targetWords: attempt.targetWords
       });
@@ -218,7 +218,7 @@ function App() {
     }
     try {
       console.log("Sending request to /predict with sentence:", inputSentence);
-      const response = await axios.post('http://localhost:5002/predict', {
+      const response = await axios.post('https://sign-web.onrender.com/predict', {
         sentence: inputSentence
       }, {
         timeout: 10000
