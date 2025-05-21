@@ -4,13 +4,15 @@ import google.generativeai as genai
 import json
 import re
 import traceback
+import os
 
 app = Flask(__name__)
-CORS(app)
+# CORS 설정: 프론트엔드 CloudFront URL로 제한 (배포 후 업데이트)
+CORS(app, resources={r"/*": {"origins": "*"}})  # 임시로 모든 도메인 허용
 
-# Gemini API 설정 (API 키 하드코딩)
+# Gemini API 설정
 try:
-    genai.configure(api_key="AIzaSyD17HtyXf2K50wNNfydSO3375mSxzwXUBw")
+    genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
     gemini_model = genai.GenerativeModel("gemini-1.5-flash")
     print("Gemini initialized with gemini-1.5-flash")
 except Exception as e:
@@ -23,52 +25,46 @@ except Exception as e:
         gemini_model = None
 
 # Gemini로 문장 분석
-def analyze_sentence_with_gemini(sentence):
+def analyze_sentence_with_gemini(sentence, max_retries=2):
     if gemini_model is None:
         print("Gemini model not initialized")
         return []
-    try:
-        print(f"Sending Gemini request for: {sentence}")
-        prompt = (
-            f'한국어 문장을 수어 어순으로 분석해. '
-            f'수어 어순은 시간, 주어, 장소, 목적어, 동사, 부사, 질문, 이유 순으로 배열됨. '
-            f'문장을 단어 단위로 분해하고, 각 단어를 위 어순에 맞게 재배열해 JSON 배열로 반환. '
-            f'- 시간: 언제(예: "어제", "오늘"). '
-            f'- 주어: 누가(예: "민지"). '
-            f'- 장소: 어디서(예: "도서관"). '
-            f'- 목적어: 무엇을(예: "책"). '
-            f'- 동사: 어떤 행동(예: "읽다"). '
-            f'- 부사: 어떻게(예: "조용히"). '
-            f'- 질문: 육하원칙 질문(예: "왜"). '
-            f'- 이유: 왜 그런지(예: "시험 준비 때문"). '
-            f'불필요한 조사(가, 을 등)는 제외, 동사는 기본형 사용(예: "읽었다" → "읽다"). '
-            f'예: "민지가 어제 도서관에서 책을 조용히 읽은 이유는 시험 준비 때문이야" '
-            f'→ ["어제", "민지", "도서관", "책", "읽다", "조용히", "왜", "시험", "준비", "때문"] '
-            f'문장: {sentence} '
-            f'결과는 JSON 배열로, Markdown 태그(```json 등) 제외.'
-        )
-        response = gemini_model.generate_content(prompt)
-        print(f"Raw response: {response.text}")
-        if not response.text.strip():
-            raise ValueError("Empty response from Gemini")
-        cleaned_content = re.sub(r'```json\n|```', '', response.text).strip()
-        print(f"Cleaned response: {cleaned_content}")
+    for attempt in range(max_retries + 1):
         try:
+            print(f"Attempt {attempt + 1}: Sending Gemini request for: {sentence}")
+            prompt = (
+                f'한국어 문장을 수어 어순으로 분석해. '
+                f'수어 어순은 시간, 주어, 장소, 목적어, 동사, 부사, 질문, 이유 순으로 배열됨. '
+                f'문장을 단어 단위로 분해하고, 각 단어를 위 어순에 맞게 재배열해 JSON 배열로 반환. '
+                f'- 시간: 언제(예: "어제", "오늘") '
+                f'- 주어: 누가(예: "민지") '
+                f'- 장소: 어디서(예: "도서관") '
+                f'- 목적어: 무엇을(예: "책") '
+                f'- 동사: 어떤 행동(예: "읽다") '
+                f'- 부사: 어떻게(예: "조용히") '
+                f'- 질문: 육하원칙 질문(예: "왜") '
+                f'- 이유: 왜 그런지(예: "시험 준비 때문") '
+                f'불필요한 조사(가, 을 등)는 제외, 동사는 기본형 사용(예: "읽었다" → "읽다"). '
+                f'빈 배열이나 잘못된 형식은 반환하지 마. '
+                f'예: "민지가 어제 도서관에서 책을 조용히 읽은 이유는 시험 준비 때문이야" '
+                f'→ ["어제", "민지", "도서관", "책", "읽다", "조용히", "왜", "시험 준비 때문"] '
+                f'문장: {sentence} '
+                f'반드시 JSON 배열로 반환.'
+            )
+            response = gemini_model.generate_content(prompt)
+            cleaned_content = re.sub(r'```json\n|```', '', response.text).strip()
+            print(f"Attempt {attempt + 1}: Cleaned response: {cleaned_content}")
             result = json.loads(cleaned_content)
-            if not isinstance(result, list) or not result:
-                raise ValueError("Invalid response format: expected non-empty list")
-            print(f"Gemini extracted words: {result}")
-            return result
-        except json.JSONDecodeError:
-            print("JSON parsing failed")
-            return []
-        except ValueError as ve:
-            print(f"Validation error: {ve}")
-            return []
-    except Exception as e:
-        print(f"Gemini analysis error: {e}")
-        print(traceback.format_exc())
-        return []
+            if isinstance(result, list) and result:
+                print(f"Attempt {attempt + 1}: Gemini extracted words: {result}")
+                return result
+            print(f"Attempt {attempt + 1}: Invalid response format")
+        except Exception as e:
+            print(f"Attempt {attempt + 1} failed: {e}")
+            if attempt == max_retries:
+                print("Max retries reached")
+                return []
+    return []
 
 @app.route('/predict', methods=['POST'])
 def predict():
@@ -100,4 +96,5 @@ def predict():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5002, debug=True)
+    port = int(os.getenv('PORT', 5002))  # AWS 배포 시 포트 동적 설정
+    app.run(host='0.0.0.0', port=port, debug=True)

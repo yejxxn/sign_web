@@ -12,5 +12,5 @@ app.route('/predict-rule', methods=['POST'], endpoint='predict_rule')(predict_ru
 app.route('/predict', methods=['POST'], endpoint='predict_gemini')(predict_gemini)
 
 if __name__ == "__main__":
-    port = int(os.getenv('PORT', 5000))
+    port = int(os.getenv('PORT', 5001))
     app.run(host='0.0.0.0', port=port, debug=True)
