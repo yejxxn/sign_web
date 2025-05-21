@@ -3,7 +3,7 @@ build/
 build.zip
 dist/
 *.zip
-.env
+#.env
 src/*.pt
 src/test*
 ._*
