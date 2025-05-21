@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { ReactSortable } from 'react-sortablejs';
 import './App.css';
 
 // 단어별 영상 매핑 객체 (S3 URL)
@@ -152,6 +151,24 @@ function App() {
     setFailedAttempts(0);
   };
 
+  const handleDragStart = (e, word) => {
+    e.dataTransfer.setData("text", word);
+  };
+
+  const handleDrop = (e, index) => {
+    e.preventDefault();
+    const word = e.dataTransfer.getData("text");
+    const newOrder = [...userOrder];
+    newOrder[index] = word;
+    setUserOrder(newOrder);
+  };
+
+  const handleReset = () => {
+    setUserOrder(Array(targetWords.length).fill(null));
+    setFeedback("");
+    setAcquiredSentence("");
+  };
+
   const checkAnswer = async () => {
     const filteredUserOrder = userOrder.filter(word => word !== null);
     const userSentence = filteredUserOrder.join(" ");
@@ -263,12 +280,6 @@ function App() {
     }
   };
 
-  const handleReset = () => {
-    setUserOrder(Array(targetWords.length).fill(null));
-    setFeedback("");
-    setAcquiredSentence("");
-  };
-
   return (
     <div className="App">
       {screen === "홈" && (
@@ -297,7 +308,6 @@ function App() {
                   autoPlay
                   loop
                   muted
-                  playsInline
                   preload="metadata"
                   onError={(e) => console.error(`영상 로드 실패: ${word}, URL: ${videoMapping[word]}, 에러: ${e.target.error.message}, 코드: ${e.target.error.code}`)}
                 >
@@ -314,25 +324,21 @@ function App() {
         <div className={`game ${pageIdx === 2 ? 'question-3' : ''}`}>
           <h1 className="title">질문 #{pageIdx + 1}</h1>
           <p className="question">{pages[pageIdx].question}</p>
-          <ReactSortable
-            list={shuffledWords.map((word, idx) => ({ id: word, idx }))}
-            setList={(newList) => {
-              const newWords = newList.map(item => item.id);
-              setShuffledWords(newWords);
-            }}
-            className="clues"
-            animation={150}
-            group={{ name: "words", pull: true, put: true }}
-          >
+          <div className="clues">
             {shuffledWords.map((word, idx) => (
-              <div key={word} className="word-card" onClick={() => setHintWord(word)}>
+              <div
+                key={idx}
+                className="word-card draggable"
+                draggable
+                onDragStart={(e) => handleDragStart(e, word)}
+                onClick={() => setHintWord(word)}
+              >
                 <video
                   className="word-video"
                   src={videoMapping[word] || "https://my-signlanguage-videos-2025.s3-ap-southeast-2.amazonaws.com/videos/placeholder.mp4"}
                   autoPlay
                   loop
                   muted
-                  playsInline
                   preload="metadata"
                   onError={(e) => console.error(`영상 로드 실패: ${word}, URL: ${videoMapping[word]}, 에러: ${e.target.error.message}, 코드: ${e.target.error.code}`)}
                 >
@@ -340,23 +346,19 @@ function App() {
                 </video>
               </div>
             ))}
-          </ReactSortable>
-          <ReactSortable
-            list={userOrder.map((word, idx) => ({ id: word || `slot-${idx}`, idx }))}
-            setList={(newList) => {
-              const newOrder = newList.map(item => item.id.startsWith('slot-') ? null : item.id);
-              setUserOrder(newOrder);
-            }}
-            className="drop-zone"
-            animation={150}
-            group={{ name: "words", pull: true, put: true }}
-          >
-            {userOrder.map((word, idx) => (
-              <div key={`slot-${idx}`} className="drop-slot">
-                {word || "여기에 드롭"}
+          </div>
+          <div className="drop-zone">
+            {targetWords.map((_, idx) => (
+              <div
+                key={idx}
+                className="drop-slot"
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => handleDrop(e, idx)}
+              >
+                {userOrder[idx] || "여기에 드롭"}
               </div>
             ))}
-          </ReactSortable>
+          </div>
           <div className="sentence-container">
             <div className="sentence-wrapper">
               <span className="hint-text">HINT</span>
